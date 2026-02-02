@@ -1,10 +1,9 @@
 class Git < Formula
   desc "Distributed revision control system"
   homepage "https://git-scm.com"
-  url "https://mirrors.edge.kernel.org/pub/software/scm/git/git-2.52.0.tar.xz"
-  sha256 "3cd8fee86f69a949cb610fee8cd9264e6873d07fa58411f6060b3d62729ed7c5"
+  url "https://mirrors.edge.kernel.org/pub/software/scm/git/git-2.53.0.tar.xz"
+  sha256 "5818bd7d80b061bbbdfec8a433d609dc8818a05991f731ffc4a561e2ca18c653"
   license "GPL-2.0-only"
-  revision 1
   head "https://github.com/git/git.git", branch: "master"
 
   livecheck do
@@ -22,6 +21,7 @@ class Git < Formula
     sha256 x86_64_linux:  "6fdac40b74282d1b5aa610a2ad05a7688c146acdec7bdb5004ee42ca25a705fe"
   end
 
+  depends_on "pkgconf" => :build
   depends_on "gettext"
   depends_on "pcre2"
 
@@ -38,13 +38,13 @@ class Git < Formula
   end
 
   resource "Authen::SASL" do
-    url "https://cpan.metacpan.org/authors/id/E/EH/EHUELS/Authen-SASL-2.1900.tar.gz"
-    sha256 "be3533a6891b2e677150b479c1a0d4bf11c8bbeebed3e7b8eba34053e93923b0"
+    url "https://cpan.metacpan.org/authors/id/E/EH/EHUELS/Authen-SASL-2.2000.tar.gz"
+    sha256 "8cdf5a7f185448b614471675dae5b26f8c6e330b62264c3ff5d91172d6889b99"
   end
 
   resource "html" do
-    url "https://mirrors.edge.kernel.org/pub/software/scm/git/git-htmldocs-2.52.0.tar.xz"
-    sha256 "e6efd0da47a15b6a59401c8c5c8944e4315b18a176b89bb57812778d6307be84"
+    url "https://mirrors.edge.kernel.org/pub/software/scm/git/git-htmldocs-2.53.0.tar.xz"
+    sha256 "994b93cbf25a9c13f1206dcc1751f0559633d5152155e16fc025ab776af08e0d"
 
     livecheck do
       formula :parent
@@ -52,8 +52,8 @@ class Git < Formula
   end
 
   resource "man" do
-    url "https://mirrors.edge.kernel.org/pub/software/scm/git/git-manpages-2.52.0.tar.xz"
-    sha256 "23186deddb3083bbaa9eb947cde26a5c7322d7fdb75bb4b3d60795db38221ac5"
+    url "https://mirrors.edge.kernel.org/pub/software/scm/git/git-manpages-2.53.0.tar.xz"
+    sha256 "957ffe4409eeb90c7332bff4abee8d5169d28ef5c7c3bf08419f4239be13f77f"
 
     livecheck do
       formula :parent
@@ -63,6 +63,14 @@ class Git < Formula
   resource "Net::SMTP::SSL" do
     url "https://cpan.metacpan.org/authors/id/R/RJ/RJBS/Net-SMTP-SSL-1.04.tar.gz"
     sha256 "7b29c45add19d3d5084b751f7ba89a8e40479a446ce21cfd9cc741e558332a00"
+  end
+
+  # Upstream expects contrib helpers to get EXTLIBS via config.mak{,.autogen},
+  # but release tarballs don't populate it for this out-of-tree build.
+  # Upstream PR: https://github.com/git/git/pull/2188
+  patch do
+    url "https://github.com/git/git/commit/ef6058cda46294b65f77d2cca8ffbfffe88cadb8.patch?full_index=1"
+    sha256 "070a1bd10947f19bdf827510061c08472bbdc6cae3b82eae64dfc10824fc819a"
   end
 
   def install
@@ -127,7 +135,9 @@ class Git < Formula
       cd "contrib/credential/osxkeychain" do
         system "make", "CC=#{ENV.cc}",
                        "CFLAGS=#{ENV.cflags}",
-                       "LDFLAGS=#{ENV.ldflags}"
+                       "CPPFLAGS=#{ENV.cppflags} -I../../..",
+                       "NO_OPENSSL=1",
+                       "APPLE_COMMON_CRYPTO=1"
         git_core.install "git-credential-osxkeychain"
         system "make", "clean"
       end
